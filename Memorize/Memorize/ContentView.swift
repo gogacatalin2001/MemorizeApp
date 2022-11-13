@@ -8,87 +8,56 @@
 import SwiftUI
 
 struct ContentView: View {
-    var emojis: [String] = ["🏀", "🏈", "🥎", "🏐", "⚽️", "🎱"]
-    @State var cardCount: Int = 4
-    var rowCount: Int = 3
+    
+    @ObservedObject var viewModel: EmojiMemorizeGame
+    
     var body: some View {
         VStack {
-            VStack(spacing: 8) {
-                CardRowView(cardCount: cardCount, emojis: emojis)
-                CardRowView(cardCount: cardCount, emojis: emojis)
-                CardRowView(cardCount: cardCount, emojis: emojis)
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 65))], spacing: 10) {
+                ForEach (viewModel.cards) {
+                    card in CardView(card: card)
+                        .aspectRatio(2/3, contentMode: .fit)
+                        .onTapGesture {
+                            withAnimation(.easeIn(duration: 0.3)) {
+                                viewModel.choose(card)
+                            }
+                        }
+                }
             }
-            Spacer()
-            HStack() {
-                add
-                Spacer()
-                remove
-            }
-            .font(.largeTitle)
         }
-        .padding(.horizontal)
-    }
-    
-    var add: some View {
-        Button {
-            if cardCount < emojis.count {
-                cardCount = cardCount + 1
-            }
-        } label: {
-            Image(systemName: "plus.circle")
-        }
-    }
-    
-    var remove: some View {
-        Button {
-            if cardCount > 0 {
-                cardCount = cardCount - 1
-            }
-        } label: {
-            Image(systemName: "minus.circle")
-        }
+        .padding([.top, .horizontal])
     }
     
     struct CardView: View {
-        @State var isFaceUp: Bool = false
-        var content: String
+        
+        let card: MemorizeGame<String>.Card
         var body: some View {
             ZStack {
                 let shape = RoundedRectangle(cornerRadius: 10)
-                if isFaceUp {
+                let symbol = Text(card.content).font(.largeTitle)
+                if card.isFaceUp {
                     shape
                         .foregroundColor(.gray)
-                    Text(content)
-                        .font(.largeTitle)
+                    symbol
+                } else if card.isMatched {
+                    shape.opacity(0)
                 } else {
-                    Text(content)
-                        .font(.largeTitle)
+                    symbol
                     shape
                         .foregroundColor(.red)
                 }
             }
-            .onTapGesture {
-                isFaceUp = !isFaceUp
-            }
-        }
-    }
-    
-    struct CardRowView: View {
-        var cardCount: Int
-        var emojis: [String]
-        var body: some View {
-            HStack {
-                ForEach (emojis[0..<cardCount], id: \.self) {
-                    emoji in CardView(content: emoji)
-                        .aspectRatio(2/3, contentMode: .fit)
-                }
-            }
+            .rotation3DEffect(Angle.degrees(card.isFaceUp ? 180 : 0), axis: (x: 0, y: 1, z: 0))
         }
     }
     
     struct ContentView_Previews: PreviewProvider {
         static var previews: some View {
-            ContentView()
+            let game = EmojiMemorizeGame()
+            ContentView(viewModel: game)
+                .preferredColorScheme(.light)
+            ContentView(viewModel: game)
+                .preferredColorScheme(.dark)
         }
     }
 }
